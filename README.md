@@ -31,7 +31,7 @@ No build step needed. The app loads js/app.js as an ES module, so serve it over 
 
 bash
 python3 -m http.server 8000
-# then visit http://localhost:8000
+# then visit (http://localhost:3000/)
 
 An internet connection is needed on first load for the CDN libraries and fonts.
 
