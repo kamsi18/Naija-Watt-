@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NaijaWatt | Nigeria Generator Runtime & Renewable Transition Sizer</title>
+  <meta name="description" content="Calculate generator runtime and fuel cost, forecast monthly spend, and project solar, wind, and hydro renewable replacement systems using verified Nigerian local state prices.">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            naija: {
+              green: '#008751',
+              darkgreen: '#00663d',
+              lightgreen: '#e6f7ef',
+              accent: '#10b981',
+              gold: '#f59e0b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --bg-950: #020817;
+      --bg-900: #0f172a;
+      --panel: rgba(15, 23, 42, 0.8);
+      --panel-soft: rgba(15, 23, 42, 0.62);
+      --panel-strong: rgba(15, 23, 42, 0.92);
+      --border: rgba(148, 163, 184, 0.18);
+      --border-strong: rgba(16, 185, 129, 0.35);
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --emerald: #10b981;
+      --emerald-2: #34d399;
+      --cyan: #22d3ee;
+      --amber: #fbbf24;
+      --rose: #fb7185;
+      --shadow-soft: 0 18px 45px rgba(2, 6, 23, 0.45);
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background:
+        radial-gradient(circle at top, rgba(16, 185, 129, 0.12), transparent 28%),
+        radial-gradient(circle at right, rgba(34, 211, 238, 0.10), transparent 20%),
+        linear-gradient(180deg, #020817 0%, #020817 42%, #0b1220 100%);
+      color: var(--text);
+    }
+
+    a {
+      text-decoration: none;
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.8);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(51, 65, 85, 0.9);
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(16, 185, 129, 0.9);
+    }
+
+    .glass-card {
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.82), rgba(15, 23, 42, 0.72));
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .glass-card-hover:hover {
+      border-color: var(--border-strong);
+      transform: translateY(-2px);
+      transition: all 0.2s ease-in-out;
+    }
+
+    .nav-tab {
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+      box-shadow: inset 0 0 0 rgba(0,0,0,0);
+    }
+
+    .nav-tab:hover {
+      border-color: rgba(148, 163, 184, 0.22);
+      background: rgba(15, 23, 42, 0.7);
+    }
+
+    .nav-tab.active-tab {
+      background: linear-gradient(180deg, rgba(16, 185, 129, 0.12), rgba(15, 23, 42, 0.7));
+      border-color: rgba(16, 185, 129, 0.35);
+      color: #d1fae5;
+    }
+
+    .gradient-border {
+      position: relative;
+      border-radius: 1rem;
+      background: linear-gradient(135deg, #10b981 0%, #3b82f6 50%, #8b5cf6 100%);
+      padding: 1px;
+    }
+    .gradient-border-inner {
+      background: #0f172a;
+      border-radius: calc(1rem - 1px);
+    }
+
+    .soft-panel {
+      background: rgba(15, 23, 42, 0.62);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 1rem;
+    }
+
+    .section-kicker {
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-size: 11px;
+      font-weight: 700;
+      color: #a7f3d0;
+    }
+
+    .section-title {
+      position: relative;
+      display: inline-block;
+      font-size: clamp(1.2rem, 2vw, 2rem);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: white;
+    }
+
+    .section-title::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: -0.5rem;
+      width: 64px;
+      height: 3px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #10b981, rgba(16, 185, 129, 0.2));
+    }
+
+    .input-shell,
+    select,
+    input[type="number"],
+    input[type="text"] {
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    }
+
+    select:focus,
+    input:focus {
+      border-color: rgba(16, 185, 129, 0.6);
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+      outline: none;
+    }
+
+    @media print {
+      body {
+        background: white !important;
+        color: black !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .print-only {
+        display: block !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-emerald-500 selection:text-white">
+
+  <!-- TOP NAVIGATION BAR -->
+  <header class="sticky top-0 z-50 border-b border-slate-800/80 bg-slate-950/85 backdrop-blur-xl">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      <div class="flex items-center space-x-3 min-w-0">
+        <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-emerald-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white font-black text-xl shrink-0">
+          🇳🇬
+        </div>
+        <div class="min-w-0">
+          <div class="flex items-center space-x-2 flex-wrap">
+            <span class="font-extrabold text-xl tracking-tight text-white">Naija<span class="text-emerald-400">Watt</span></span>
+            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+              Nigeria Energy Matrix
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 hidden sm:block truncate">Generator Tracking & Renewable Replacement Platform</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2 sm:space-x-3 flex-wrap justify-end">
+        <div class="flex items-center space-x-2 bg-slate-900/90 border border-slate-700/80 rounded-xl px-3 py-1.5 text-xs text-slate-300 shadow-inner shadow-slate-950/30">
+          <i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span class="font-medium hidden md:inline text-slate-400">Location:</span>
+          <select id="headerStateSelect" class="bg-transparent text-emerald-400 font-semibold focus:outline-none cursor-pointer pr-2">
+            <!-- Populated via JS -->
+          </select>
+        </div>
+
+        <button id="openShareModalBtn" class="flex items-center space-x-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all shadow-sm shadow-emerald-950/20">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span class="hidden sm:inline">Public Link</span>
+          <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
+        </button>
+
+        <a href="#audit-report" class="hidden lg:flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-3.5 py-1.5 text-xs font-bold transition shadow-lg shadow-emerald-600/20">
+          <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+          <span>Audit Report</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="border-t border-slate-800/60 bg-slate-900/35 overflow-x-auto no-scrollbar">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-1 py-2 text-xs font-medium whitespace-nowrap">
+        <a href="#tracker" class="nav-tab px-3 py-1.5 rounded-lg text-slate-300 flex items-center gap-1.5 active-tab">
+          <i data-lucide="zap" class="w-3.5 h-3.5"></i>
+          <span>Generator Tracker</span>
+        </a>
+        <a href="#facilities" class="nav-tab px-3 py-1.5 rounded-lg text-slate-300 flex items-center gap-1.5">
+          <i data-lucide="building" class="w-3.5 h-3.5"></i>
+          <span>Facilities</span>
+        </a>
+        <a href="#renewables" class="nav-tab px-3 py-1.5 rounded-lg text-slate-300 flex items-center gap-1.5">
+          <i data-lucide="sun" class="w-3.5 h-3.5"></i>
+          <span>Renewables</span>
+        </a>
+        <a href="#pricing-engine" class="nav-tab px-3 py-1.5 rounded-lg text-slate-300 flex items-center gap-1.5">
+          <i data-lucide="database" class="w-3.5 h-3.5"></i>
+          <span>Price Engine</span>
+        </a>
+        <a href="#roi-benchmarks" class="nav-tab px-3 py-1.5 rounded-lg text-slate-300 flex items-center gap-1.5">
+          <i data-lucide="trending-up" class="w-3.5 h-3.5"></i>
+          <span>ROI</span>
+        </a>
+        <a href="#audit-report" class="nav-tab px-3 py-1.5 rounded-lg text-slate-300 flex items-center gap-1.5">
+          <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+          <span>Audit</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO SECTION -->
+  <section class="relative overflow-hidden pt-8 pb-12 border-b border-slate-800/80 bg-gradient-to-b from-slate-900/50 via-slate-950 to-slate-950">
+    <div class="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(16,185,129,0.15),rgba(255,255,255,0))]"></div>
+    
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+        <div>
+          <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold mb-3">
+            <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+            <span>Verified 2025/2026 Nigerian Regional Fuel & Tariff Benchmarks</span>
+          </div>
+          <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
+            Stop Bleeding Cash on Fuel.<br class="hidden sm:inline">
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
+              Replace Your Generator with Clean Energy.
+            </span>
+          </h1>
+          <p class="mt-3 text-sm sm:text-base text-slate-400 max-w-3xl">
+            Live tracker for generator runtime, liters burned, and cost per hour. Pinpoint exact sizing for 
+            <span class="text-slate-200 font-semibold">Solar PV + LiFePO4 batteries, Micro-Wind, and Pico-Hydro</span> 
+            tailored to local prices across all 36 Nigerian states and FCT Abuja.
+          </p>
+        </div>
+
+        <!-- Quick Summary Stats Card -->
+        <div class="glass-card rounded-2xl p-5 border border-slate-800 flex-shrink-0 w-full md:w-80 bg-slate-900/60 shadow-xl">
+          <div class="flex items-center justify-between text-xs text-slate-400 pb-2 border-b border-slate-800">
+            <span>SELECTED REGION</span>
+            <span id="heroStateBadge" class="text-emerald-400 font-bold">Lagos State</span>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mt-3">
+            <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
+              <span class="text-[11px] text-slate-400 block">PMS (Petrol)</span>
+              <span id="heroPetrolPrice" class="text-base font-bold text-amber-400">₦865 / L</span>
+            </div>
+            <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
+              <span class="text-[11px] text-slate-400 block">AGO (Diesel)</span>
+              <span id="heroDieselPrice" class="text-base font-bold text-amber-300">₦1,140 / L</span>
+            </div>
+            <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
+              <span class="text-[11px] text-slate-400 block">DisCo Band A</span>
+              <span id="heroGridTariff" class="text-base font-bold text-cyan-400">₦207.5 / kWh</span>
+            </div>
+            <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
+              <span class="text-[11px] text-slate-400 block">Solar Sun Peak</span>
+              <span id="heroSolarInsolation" class="text-base font-bold text-emerald-400">4.25 PSH</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-16">
+
+    <!-- ========================================== -->
+    <!-- SECTION 1: GENERATOR TRACKER & FORECASTER  -->
+    <!-- ========================================== -->
+    <section id="tracker" class="space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-800 pb-4">
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">1</span>
+            <h2 class="text-xl sm:text-2xl font-bold text-white tracking-tight">Generator Runtime, Fuel Tracker & Monthly Spend Forecaster</h2>
+          </div>
+          <p class="text-xs sm:text-sm text-slate-400 mt-1">
+            Track exact hourly running cost, daily fuel burn rate, and project your 1-month, 1-year, and 10-year cumulative spending.
+          </p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button id="resetGenDefaultsBtn" class="text-xs text-slate-400 hover:text-emerald-400 flex items-center space-x-1 px-2.5 py-1 rounded bg-slate-900 border border-slate-800">
+            <i data-lucide="rotate-ccw" class="w-3 h-3"></i>
+            <span>Reset Defaults</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Controls Column -->
+        <div class="lg:col-span-5 space-y-5 glass-card p-6 rounded-2xl border border-slate-800">
+          
+          <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center space-x-2">
+            <i data-lucide="sliders" class="w-4 h-4 text-emerald-400"></i>
+            <span>Generator Operational Parameters</span>
+          </h3>
+
+          <!-- Generator Fuel Type Toggle -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-2">Fuel Type</label>
+            <div class="grid grid-cols-2 gap-3">
+              <button id="fuelPetrolBtn" type="button" class="fuel-btn flex items-center justify-center space-x-2 py-2.5 px-3 rounded-xl border border-emerald-500 bg-emerald-500/20 text-emerald-300 font-bold text-xs transition">
+                <i data-lucide="fuel" class="w-4 h-4 text-emerald-400"></i>
+                <span>Petrol (PMS)</span>
+              </button>
+              <button id="fuelDieselBtn" type="button" class="fuel-btn flex items-center justify-center space-x-2 py-2.5 px-3 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-400 font-bold text-xs transition hover:border-slate-700">
+                <i data-lucide="gauge" class="w-4 h-4"></i>
+                <span>Diesel (AGO)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Quick Generator Preset Picker -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-2">Generator Size Preset</label>
+            <select id="genPresetSelect" class="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+              <option value="2.5">Small Petrol 2.5 - 3.5 kVA (Tiger / Elepaq) ~ 1.0 L/hr</option>
+              <option value="7.5" selected>Medium Petrol/Diesel 7.5 kVA (Firman / Lutian) ~ 2.4 L/hr</option>
+              <option value="15.0">Heavy Diesel 15 kVA (Mikano / Perkins) ~ 4.5 L/hr</option>
+              <option value="30.0">Commercial Diesel 30 kVA (CAT / Perkins) ~ 7.5 L/hr</option>
+              <option value="60.0">Industrial Diesel 60 kVA ~ 14.0 L/hr</option>
+              <option value="100.0">Industrial Heavy 100 kVA ~ 22.0 L/hr</option>
+              <option value="custom">Custom Configuration</option>
+            </select>
+          </div>
+
+          <!-- Local Fuel Price per Liter (Synchronized with Nigerian State) -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="text-xs font-semibold text-slate-300">
+                Local Fuel Price (₦ / Liter)
+              </label>
+              <span class="text-[11px] text-emerald-400 font-mono" id="fuelPriceStateBadge">State: Lagos</span>
+            </div>
+            <div class="relative">
+              <span class="absolute left-3.5 top-2.5 text-slate-400 font-bold text-xs">₦</span>
+              <input type="number" id="fuelPriceInput" value="865" min="100" max="3000" step="5" class="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-8 pr-3.5 py-2 text-sm font-semibold text-white focus:outline-none focus:border-emerald-500">
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1">Pre-filled with actual state depot/pump price; editable for custom private purchases.</p>
+          </div>
+
+          <!-- Fuel Consumption Rate (Liters / Hour) -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="text-xs font-semibold text-slate-300">Fuel Consumption Rate</label>
+              <span class="text-xs font-bold font-mono text-emerald-400" id="fuelConsumptionVal">2.4 Liters / hr</span>
+            </div>
+            <input type="range" id="fuelConsumptionSlider" min="0.5" max="80" step="0.1" value="2.4" class="w-full accent-emerald-500 bg-slate-800 rounded-lg cursor-pointer">
+            <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+              <span>0.5 L/hr (Mini)</span>
+              <span>10 L/hr (Commercial)</span>
+              <span>80 L/hr (Heavy Industrial)</span>
+            </div>
+          </div>
+
+          <!-- Daily Runtime Hours Slider -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="text-xs font-semibold text-slate-300">Daily Runtime (Hours per Day)</label>
+              <span class="text-xs font-bold font-mono text-emerald-400" id="dailyRuntimeVal">14 Hours / day</span>
+            </div>
+            <input type="range" id="dailyRuntimeSlider" min="1" max="24" step="1" value="14" class="w-full accent-emerald-500 bg-slate-800 rounded-lg cursor-pointer">
+            <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+              <span>4 hrs (Evening only)</span>
+              <span>12 hrs (Workday)</span>
+              <span>24 hrs (Continuous)</span>
+            </div>
+          </div>
+
+          <!-- Average Electric Load (kW) -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="text-xs font-semibold text-slate-300">Effective Electrical Load (kW)</label>
+              <span class="text-xs font-bold font-mono text-emerald-400" id="avgLoadVal">4.0 kW</span>
+            </div>
+            <input type="range" id="avgLoadSlider" min="0.5" max="150" step="0.5" value="4.0" class="w-full accent-emerald-500 bg-slate-800 rounded-lg cursor-pointer">
+          </div>
+
+        </div>
+
+        <!-- Output Metric Cards Column -->
+        <div class="lg:col-span-7 space-y-5">
+          
+          <!-- Key Top Numbers Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            
+            <!-- Hourly Cost -->
+            <div class="glass-card rounded-2xl p-4 border border-slate-800/80 bg-gradient-to-br from-slate-900/90 to-slate-900/40">
+              <div class="flex items-center justify-between text-xs text-slate-400">
+                <span>COST PER HOUR</span>
+                <i data-lucide="clock" class="w-4 h-4 text-emerald-400"></i>
+              </div>
+              <div class="mt-2">
+                <span class="text-2xl font-extrabold text-white" id="cardHourlyCost">₦2,256</span>
+                <span class="text-xs text-slate-400 block mt-0.5" id="cardHourlyBreakdown">₦2,076 fuel + ₦180 lube</span>
+              </div>
+            </div>
+
+            <!-- Monthly Spend -->
+            <div class="glass-card rounded-2xl p-4 border border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-slate-900/40 relative overflow-hidden">
+              <div class="absolute -right-2 -bottom-2 opacity-10">
+                <i data-lucide="calendar" class="w-20 h-20 text-amber-400"></i>
+              </div>
+              <div class="flex items-center justify-between text-xs text-amber-400/90 font-bold">
+                <span>MONTHLY SPEND</span>
+                <span class="text-[10px] bg-amber-500/20 px-1.5 py-0.5 rounded text-amber-300">30 Days</span>
+              </div>
+              <div class="mt-2">
+                <span class="text-2xl font-extrabold text-amber-300" id="cardMonthlyCost">₦947,520</span>
+                <span class="text-xs text-slate-300 block mt-0.5" id="cardMonthlyFuelLiters">1,008 Liters of Fuel</span>
+              </div>
+            </div>
+
+            <!-- Annual Spend -->
+            <div class="glass-card rounded-2xl p-4 border border-rose-500/30 bg-gradient-to-br from-rose-500/10 to-slate-900/40 relative overflow-hidden">
+              <div class="flex items-center justify-between text-xs text-rose-400/90 font-bold">
+                <span>ANNUAL SPEND</span>
+                <span class="text-[10px] bg-rose-500/20 px-1.5 py-0.5 rounded text-rose-300">365 Days</span>
+              </div>
+              <div class="mt-2">
+                <span class="text-2xl font-extrabold text-rose-400" id="cardAnnualCost">₦11,528,160</span>
+                <span class="text-xs text-slate-300 block mt-0.5" id="cardAnnualFuelLiters">12,264 Liters Burned</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Secondary Metrics & Grid Tariff Comparison Banner -->
+          <div class="glass-card rounded-2xl p-4 border border-slate-800 bg-slate-900/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="flex items-center space-x-3">
+              <div class="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold">
+                ₦/k
+              </div>
+              <div>
+                <span class="text-xs text-slate-400 block">Generator Effective Rate</span>
+                <span class="text-lg font-bold text-rose-400" id="cardEffectiveKwhRate">₦564 / kWh</span>
+              </div>
+            </div>
+            
+            <div class="h-8 w-px bg-slate-800 hidden sm:block"></div>
+
+            <div class="flex items-center space-x-3">
+              <div class="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold">
+                ⚡
+              </div>
+              <div>
+                <span class="text-xs text-slate-400 block">DisCo Band A Tariff</span>
+                <span class="text-lg font-bold text-cyan-400" id="cardDiscoTariff">₦207.5 / kWh</span>
+              </div>
+            </div>
+
+            <div class="h-8 w-px bg-slate-800 hidden sm:block"></div>
+
+            <div class="flex items-center space-x-3">
+              <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+                🌱
+              </div>
+              <div>
+                <span class="text-xs text-slate-400 block">CO2 Bleed / Year</span>
+                <span class="text-sm font-bold text-slate-200" id="cardAnnualCo2">28.3 Tons CO2</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Visual Chart: 10-Year Fuel Sinkhole Projection -->
+          <div class="glass-card rounded-2xl p-5 border border-slate-800 bg-slate-900/60">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300">
+                  Cumulative Fuel Burn Projection (The Fuel Sinkhole)
+                </h4>
+                <p class="text-[11px] text-slate-400">Calculated with 12% compound fuel price inflation</p>
+              </div>
+              <span class="text-xs font-extrabold text-rose-400 font-mono" id="cardTenYearSpend">10-Yr: ₦192.5M</span>
+            </div>
+            <div class="h-56">
+              <canvas id="fuelProjectionChart"></canvas>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ========================================== -->
+    <!-- SECTION 2: MULTI-FACILITY / INSTALLATION   -->
+    <!-- ========================================== -->
+    <section id="facilities" class="space-y-6">
+      <div class="border-b border-slate-800 pb-4">
+        <div class="flex items-center space-x-2">
+          <span class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">2</span>
+          <h2 class="text-xl sm:text-2xl font-bold text-white tracking-tight">Facility & Installation Profiles (Varying Sizes)</h2>
+        </div>
+        <p class="text-xs sm:text-sm text-slate-400 mt-1">
+          Select or combine your facility type (Commercial Shop, Residential Home, Factory/Industrial, or Custom). Each profile carries verified Nigerian appliance loads and sizing defaults.
+        </p>
+      </div>
+
+      <!-- Facility Category Tabs -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3" id="facilityCategoryGrid">
+        <!-- Rendered by JS -->
+      </div>
+
+      <!-- Sub-Size Picker & Load Details -->
+      <div class="glass-card p-6 rounded-2xl border border-slate-800 bg-slate-900/60 space-y-6">
+        
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-800 pb-4">
+          <div>
+            <h3 class="text-base font-bold text-white flex items-center space-x-2">
+              <span id="activeFacilityName">Commercial Shop / Retail</span>
+              <span class="text-xs font-normal text-slate-400 ml-2" id="activeFacilityDesc">Retail store or pharmacy</span>
+            </h3>
+          </div>
+          
+          <!-- Size Selector Pills -->
+          <div class="flex flex-wrap gap-2" id="facilitySizesContainer">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Appliance Audit & Load Breakdown Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          
+          <div class="bg-slate-950/70 p-4 rounded-xl border border-slate-800/80">
+            <span class="text-xs font-semibold text-slate-400 block mb-1">Peak Simultaneous Load</span>
+            <span class="text-2xl font-black text-emerald-400" id="facPeakLoad">6.5 kW</span>
+            <span class="text-[11px] text-slate-400 block mt-1">Suggested Generator: <strong class="text-slate-200" id="facGenSuggestion">8.5 kVA</strong></span>
+          </div>
+
+          <div class="bg-slate-950/70 p-4 rounded-xl border border-slate-800/80">
+            <span class="text-xs font-semibold text-slate-400 block mb-1">Average Operating Load</span>
+            <span class="text-2xl font-black text-cyan-400" id="facAvgLoad">4.5 kW</span>
+            <span class="text-[11px] text-slate-400 block mt-1">Daily Energy Demand: <strong class="text-slate-200" id="facDailyKwh">54.0 kWh/day</strong></span>
+          </div>
+
+          <div class="bg-slate-950/70 p-4 rounded-xl border border-slate-800/80">
+            <span class="text-xs font-semibold text-slate-400 block mb-1">Operating Schedule</span>
+            <span class="text-2xl font-black text-amber-400" id="facHours">12 hrs/day</span>
+            <span class="text-[11px] text-slate-400 block mt-1">Daytime Usage Ratio: <strong class="text-slate-200" id="facDayRatio">75%</strong></span>
+          </div>
+
+        </div>
+
+        <!-- Typical Appliances List -->
+        <div class="bg-slate-950/50 p-4 rounded-xl border border-slate-800/60">
+          <div class="flex items-center space-x-2 text-xs font-semibold text-slate-300 mb-2">
+            <i data-lucide="plug" class="w-3.5 h-3.5 text-emerald-400"></i>
+            <span>Included Electrical Appliances & Loads:</span>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed" id="facAppliancesList">
+            2x 1.5HP Inverter ACs, 3 commercial display chillers, barcode computers, CCTV, security lighting
+          </p>
+        </div>
+
+        <!-- Apply to Tracker Button -->
+        <div class="flex justify-end">
+          <button id="applyFacilityToTrackerBtn" class="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-bold text-xs transition shadow-lg shadow-emerald-600/30">
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span>Apply Facility Load to Generator Tracker & Renewable Sizer</span>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ========================================== -->
+    <!-- SECTION 3: RENEWABLE REPLACEMENT SIZER     -->
+    <!-- ========================================== -->
+    <section id="renewables" class="space-y-6">
+      <div class="border-b border-slate-800 pb-4">
+        <div class="flex items-center space-x-2">
+          <span class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">3</span>
+          <h2 class="text-xl sm:text-2xl font-bold text-white tracking-tight">Renewable Energy Replacement Sizing (Solar, Wind & Hydro)</h2>
+        </div>
+        <p class="text-xs sm:text-sm text-slate-400 mt-1">
+          Exact hardware capacity needed to replace 100% of your generator runtime, engineered specifically for <strong class="text-emerald-400" id="renewStateName">Lagos State</strong>'s natural resource levels.
+        </p>
+      </div>
+
+      <!-- Top Recommendation Showcase Banner -->
+      <div class="gradient-border">
+        <div class="gradient-border-inner p-6 sm:p-8">
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div>
+              <div class="flex items-center space-x-2 mb-2">
+                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                  Recommended Configuration
+                </span>
+                <span class="text-xs text-slate-400" id="recommendStateZone">South-West Zone</span>
+              </div>
+              <h3 class="text-2xl sm:text-3xl font-extrabold text-white" id="recommendedMixTitle">
+                100% Solar PV + LiFePO4 Energy Storage
+              </h3>
+              <p class="text-xs sm:text-sm text-slate-300 max-w-2xl mt-2" id="recommendedMixDesc">
+                The most dependable, scalable, and zero-maintenance replacement for Nigerian grid blackouts and generator noise.
+              </p>
+            </div>
+            
+            <div class="bg-slate-900/90 p-5 rounded-2xl border border-slate-800 text-right flex-shrink-0">
+              <span class="text-xs text-slate-400 block">Total Investment (Capex)</span>
+              <span class="text-3xl font-black text-emerald-400 font-mono" id="recommendedCapex">₦9,840,000</span>
+              <span class="text-[11px] text-slate-400 block mt-1">Payback Period: <strong class="text-amber-400" id="recommendedPayback">10.4 Months</strong></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Three Source Technology Comparison Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- 1. SOLAR PV + BATTERY CARD -->
+        <div class="glass-card rounded-2xl p-6 border border-emerald-500/30 bg-slate-900/60 relative flex flex-col justify-between space-y-4">
+          <div>
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div class="flex items-center space-x-2">
+                <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">
+                  ☀️
+                </div>
+                <div>
+                  <h4 class="font-bold text-white text-base">Solar PV + Storage</h4>
+                  <span class="text-[11px] text-slate-400">Monocrystalline + LiFePO4</span>
+                </div>
+              </div>
+              <span class="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full font-bold">Primary</span>
+            </div>
+
+            <!-- Specs Grid -->
+            <div class="space-y-3 mt-4 text-xs">
+              <div class="flex justify-between py-1.5 border-b border-slate-800/60">
+                <span class="text-slate-400">Solar Array Capacity:</span>
+                <span class="font-bold text-emerald-400 font-mono" id="solarSpecCapacity">8.8 kWp</span>
+              </div>
+              <div class="flex justify-between py-1.5 border-b border-slate-800/60">
+                <span class="text-slate-400">550W Tier-1 Panels:</span>
+                <span class="font-bold text-white" id="solarSpecPanels">16 Units</span>
+              </div>
+              <div class="flex justify-between py-1.5 border-b border-slate-800/60">
+                <span class="text-slate-400">LiFePO4 Lithium Battery:</span>
+                <span class="font-bold text-cyan-400 font-mono" id="solarSpecBattery">15.36 kWh</span>
+              </div>
+              <div class="flex justify-between py-1.5 border-b border-slate-800/60">
+                <span class="text-slate-400">Hybrid Pure Sine Inverter:</span>
+                <span class="font-bold text-white" id="solarSpecInverter">8.0 kW</span>
+              </div>
+              <div class="flex justify-between py-1.5 border-b border-slate-800/60">
+                <span class="text-slate-400">State Solar Insolation:</span>
+                <span class="font-bold text-amber-400" id="solarSpecInsolation">4.25 PSH</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Total Solar Capex Box -->
+          <div class="bg-slate-950/80 p-3.5 rounded-xl border border-slate-800">
+            <span class="text-[11px] text-slate-400 block">Complete Installed Solar Capex</span>
+            <span class="text-xl font-black text-emerald-400" id="solarTotalCapex">₦9,840,000</span>
+          </div>
+        </div>
+
+        <!-- 2. WIND ENERGY CARD -->
+        <div class="glass-card rounded-2xl p-6 border border-slate-800 bg-slate-900/60 relative flex flex-col justify-between space-y-4">
+          <div>
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div class="flex items-center space-x-2">
+                <div class="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold">
+                  💨
+                </div>
+                <div>
+                  <h4 class="font-bold text-white text-base">Wind Turbines</h4>
+                  <span class="text-[11px] text-slate-400">Micro/Mini Horizontal Mast</span>
+                </div>
+              </div>
+              <span class="text-[10px] px-2 py-0.5 rounded-full font-bold" id="windViabilityBadge">Moderate</span>
+            </div>
+
+            <!-- Specs Grid -->
+            <div class="space-y-3 mt-4 text-xs">
+              <div class="flex justify-between py-1.5 border-b border-slate-800/60">
+                <span class="text-slate-400">Avg Wind Speed in State:</span>
+                <span class="font-bold text-cyan-400 font-mono" id="windSpecSpeed">5.2 m/s</span>
+              </div>
+              <div class="flex justify-between py-1.5 border-b border-slate-800/60">
+                <span class="text-slate-400">Required Wind Capacity:</span>
+                <span class="font-bold text-white font-mono" id="windSpecCapacity">10.0 kW</span>
+              </div>
+              <div class="flex justify-between py-1.5 border-b border-slate-800/60">
+                <span class="text-slate-400">Standard 2kW Turbines:</span>
+                <span class="font-bold text-white" id="windSpecUnits">5 Units</span>
+              </div>
+              <div class="flex justify-between py-1.5 border-b border-slate-800/60">
+                <span class="text-slate-400">Cut-in Wind Speed:</span>
+                <span class="font-bold text-slate-300">2.8 m/s</span>
+              </div>
+            </div>
+
+            <!-- Explanation Text -->
+            <p class="text-[11px] text-slate-400 leading-relaxed mt-3" id="windExplanationText">
+              Moderate wind speeds allow supplemental generation during coastal/storm breezes, offsetting nighttime battery strain.
+            </p>
+          </div>
+
+          <!-- Total Wind Capex Box -->
+          <div class="bg-slate-950/80 p-3.5 rounded-xl border border-slate-800">
+            <span class="text-[11px] text-slate-400 block">Standalone Wind Capex</span>
+            <span class="text-xl font-black text-cyan-400" id="windTotalCapex">₦12,500,000</span>
+          </div>
+        </div>
+
+        <!-- 3. MICRO-HYDROELECTRIC CARD -->
+        <div class="glass-card rounded-2xl p-6 border border-slate-800 bg-slate-900/60 relative flex flex-col justify-between space-y-4">
+          <div>
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div class="flex items-center space-x-2">
+                <div class="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
+                  💧
+                </div>
+                <div>
+                  <h4 class="font-bold text-white text-base">Micro-Hydro</h4>
+                  <span class="text-[11px] text-slate-400">Pelton / Crossflow Turbines</span>
+                </div>
+              </div>
+              <span class="text-[10px] px-2 py-0.5 rounded-full font-bold" id="hydroViabilityBadge">Site Dependent</span>
+            </div>
+
+            <!-- Specs Grid -->
+            <div class="space-y-3 mt-4 text-xs">
+              <div class="flex justify-between py-1.5 border-b border-slate-800/60">
+                <span class="text-slate-400">State Hydro Potential:</span>
+                <span class="font-bold text-blue-400" id="hydroSpecRating">Low</span>
+              </div>
+              <div class="flex justify-between py-1.5 border-b border-slate-800/60">
+                <span class="text-slate-400">Baseload Hydro Capacity:</span>
+                <span class="font-bold text-white font-mono" id="hydroSpecCapacity">5.0 kW</span>
+              </div>
+              <div class="flex justify-between py-1.5 border-b border-slate-800/60">
+                <span class="text-slate-400">Battery Savings Benefit:</span>
+                <span class="font-bold text-emerald-400" id="hydroSpecBatterySaving">-0% (No Head)</span>
+              </div>
+              <div class="flex justify-between py-1.5 border-b border-slate-800/60">
+                <span class="text-slate-400">Required Head (Elevation):</span>
+                <span class="font-bold text-slate-300">Min 5 - 15 meters</span>
+              </div>
+            </div>
+
+            <!-- Explanation Text -->
+            <p class="text-[11px] text-slate-400 leading-relaxed mt-3" id="hydroExplanationText">
+              Lagos is flat coastal delta lacking hydrostatic head. Ideal in Plateau, Taraba, Niger, and Cross River.
+            </p>
+          </div>
+
+          <!-- Total Hydro Capex Box -->
+          <div class="bg-slate-950/80 p-3.5 rounded-xl border border-slate-800">
+            <span class="text-[11px] text-slate-400 block">Micro-Hydro Capex (If Stream Exists)</span>
+            <span class="text-xl font-black text-blue-400" id="hydroTotalCapex">₦5,500,000</span>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ========================================== -->
+    <!-- SECTION 4: NIGERIAN REGIONAL PRICING ENGINE-->
+    <!-- ========================================== -->
+    <section id="pricing-engine" class="space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-800 pb-4">
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">4</span>
+            <h2 class="text-xl sm:text-2xl font-bold text-white tracking-tight">Nigerian Regional Market Pricing Engine (36 States + FCT)</h2>
+          </div>
+          <p class="text-xs sm:text-sm text-slate-400 mt-1">
+            Real-time local prices of Fuel (Petrol/Diesel), DisCo Electricity Tariffs, and Renewable Resource potentials across Nigeria.
+          </p>
+        </div>
+
+        <!-- Search & Filter Controls -->
+        <div class="flex items-center space-x-3">
+          <div class="relative">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+            <input type="text" id="stateSearchInput" placeholder="Search state (e.g. Kano, Abuja)..." class="bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500 w-44 sm:w-60">
+          </div>
+          <select id="zoneFilterSelect" class="bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-emerald-500">
+            <option value="ALL">All 6 Zones</option>
+            <option value="South-West">South-West</option>
+            <option value="South-East">South-East</option>
+            <option value="South-South">South-South</option>
+            <option value="North-Central">North-Central</option>
+            <option value="North-West">North-West</option>
+            <option value="North-East">North-East</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- State Cards Table / Grid Container -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="statesCardsGrid">
+        <!-- Dynamically rendered by JS -->
+      </div>
+    </section>
+
+
+    <!-- ========================================== -->
+    <!-- SECTION 5: LOCAL EQUIPMENT PRICES & ROI    -->
+    <!-- ========================================== -->
+    <section id="roi-benchmarks" class="space-y-6">
+      <div class="border-b border-slate-800 pb-4">
+        <div class="flex items-center space-x-2">
+          <span class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">5</span>
+          <h2 class="text-xl sm:text-2xl font-bold text-white tracking-tight">Consistent Local Equipment Prices & Payback ROI</h2>
+        </div>
+        <p class="text-xs sm:text-sm text-slate-400 mt-1">
+          Accurate Nigerian hardware unit prices (Tier-1 solar panels, LiFePO4 batteries, inverters, balance of system) and financial breakeven metrics.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Equipment Unit Pricing Benchmarks -->
+        <div class="lg:col-span-5 space-y-4 glass-card p-6 rounded-2xl border border-slate-800 bg-slate-900/60">
+          <h3 class="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center space-x-2">
+            <i data-lucide="tag" class="w-4 h-4 text-emerald-400"></i>
+            <span>Local Market Benchmarks (Naira ₦)</span>
+          </h3>
+
+          <div class="space-y-3 text-xs">
+            
+            <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-slate-200 block">Tier-1 Mono Solar Panels</span>
+                <span class="text-[10px] text-slate-400">Longi, Jinko, Canadian Solar (550W)</span>
+              </div>
+              <span class="font-mono font-bold text-emerald-400 text-sm">₦420 / W</span>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-slate-200 block">Grade-A LiFePO4 Lithium Battery</span>
+                <span class="text-[10px] text-slate-400">Felicity, Pylontech, Deye 48V/100Ah</span>
+              </div>
+              <span class="font-mono font-bold text-emerald-400 text-sm">₦330,000 / kWh</span>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-slate-200 block">Pure Sine Hybrid Inverter</span>
+                <span class="text-[10px] text-slate-400">High-frequency MPPT 5kW - 50kW</span>
+              </div>
+              <span class="font-mono font-bold text-emerald-400 text-sm">₦225,000 / kW</span>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-slate-200 block">Balance of System (BOS) & Racks</span>
+                <span class="text-[10px] text-slate-400">Aluminium rails, DC SPD, copper cables</span>
+              </div>
+              <span class="font-mono font-bold text-slate-300 text-sm">14% Hardware</span>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-slate-200 block">Certified Solar Installation Labor</span>
+                <span class="text-[10px] text-slate-400">NEMSA/COREN registered engineers</span>
+              </div>
+              <span class="font-mono font-bold text-slate-300 text-sm">8% Hardware</span>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-slate-200 block">Wind Turbine System (Installed)</span>
+                <span class="text-[10px] text-slate-400">Micro-wind turbine + MPPT controller + Mast</span>
+              </div>
+              <span class="font-mono font-bold text-cyan-400 text-sm">₦1.25M / kW</span>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-slate-200 block">Micro-Hydro System (Installed)</span>
+                <span class="text-[10px] text-slate-400">Turbine + Penstock pipe + Governor</span>
+              </div>
+              <span class="font-mono font-bold text-blue-400 text-sm">₦1.10M / kW</span>
+            </div>
+
+          </div>
+
+          <!-- Itemized Bill of Materials for Current Sizing -->
+          <div class="pt-2 border-t border-slate-800">
+            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Itemized Sizing Cost for Your Facility</h4>
+            <div class="space-y-1.5 text-xs" id="itemizedCostList">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Financial Metrics & Breakeven Analytics -->
+        <div class="lg:col-span-7 space-y-5">
+          
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            
+            <div class="glass-card rounded-2xl p-4 border border-emerald-500/40 bg-emerald-500/10">
+              <span class="text-xs text-emerald-300 font-bold block">SIMPLE PAYBACK PERIOD</span>
+              <span class="text-3xl font-black text-emerald-400 mt-1 block" id="roiPaybackYears">0.8 Years</span>
+              <span class="text-xs text-slate-300 block" id="roiPaybackMonths">10.4 Months</span>
+            </div>
+
+            <div class="glass-card rounded-2xl p-4 border border-cyan-500/40 bg-cyan-500/10">
+              <span class="text-xs text-cyan-300 font-bold block">NET MONTHLY SAVINGS</span>
+              <span class="text-2xl font-black text-cyan-400 mt-1 block" id="roiMonthlySavings">₦945,020</span>
+              <span class="text-xs text-slate-300 block">Cash kept in your pocket</span>
+            </div>
+
+            <div class="glass-card rounded-2xl p-4 border border-purple-500/40 bg-purple-500/10">
+              <span class="text-xs text-purple-300 font-bold block">10-YEAR NET ROI</span>
+              <span class="text-2xl font-black text-purple-400 mt-1 block" id="roiTenYearNet">₦180.2 Million</span>
+              <span class="text-xs text-slate-300 block" id="roiPercentBadge">+1,830% Return</span>
+            </div>
+
+          </div>
+
+          <!-- Levelized Cost of Energy (LCOE) Comparison -->
+          <div class="glass-card rounded-2xl p-5 border border-slate-800 bg-slate-900/60">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3">
+              Levelized Cost of Energy (LCOE) Head-to-Head
+            </h4>
+            
+            <div class="space-y-4">
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="text-slate-300 font-semibold">Generator Fuel + Overhauls</span>
+                  <span class="font-bold text-rose-400 font-mono" id="lcoeGenVal">₦564 / kWh</span>
+                </div>
+                <div class="w-full bg-slate-800 rounded-full h-3 overflow-hidden">
+                  <div class="bg-rose-500 h-full rounded-full" style="width: 100%"></div>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="text-slate-300 font-semibold">Renewable Clean Energy (Capex Amortized over 15 Yrs)</span>
+                  <span class="font-bold text-emerald-400 font-mono" id="lcoeRenewVal">₦78 / kWh</span>
+                </div>
+                <div class="w-full bg-slate-800 rounded-full h-3 overflow-hidden">
+                  <div class="bg-emerald-500 h-full rounded-full" id="lcoeRenewBar" style="width: 14%"></div>
+                </div>
+              </div>
+            </div>
+
+            <p class="text-[11px] text-emerald-400 font-semibold mt-4 flex items-center space-x-1.5">
+              <i data-lucide="check" class="w-3.5 h-3.5"></i>
+              <span>Clean Renewable Energy is <strong id="lcoeSavingsTimes">7.2x cheaper</strong> than running on generator fuel in Nigeria!</span>
+            </p>
+          </div>
+
+          <!-- Cash Flow Comparison Chart -->
+          <div class="glass-card rounded-2xl p-5 border border-slate-800 bg-slate-900/60">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300">
+                10-Year Cumulative Cash Flow Comparison
+              </h4>
+              <span class="text-[11px] text-slate-400">Generator Fuel vs Solar Capex</span>
+            </div>
+            <div class="h-60">
+              <canvas id="cashflowComparisonChart"></canvas>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ========================================== -->
+    <!-- SECTION 6: EXECUTIVE AUDIT & REPORT        -->
+    <!-- ========================================== -->
+    <section id="audit-report" class="space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-800 pb-4">
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">6</span>
+            <h2 class="text-xl sm:text-2xl font-bold text-white tracking-tight">Executive Energy Audit & Feasibility Proposal</h2>
+          </div>
+          <p class="text-xs sm:text-sm text-slate-400 mt-1">
+            Print-ready, formal feasibility audit formatted for home owners, facility managers, CFOs, or solar contractors.
+          </p>
+        </div>
+
+        <div class="flex items-center space-x-3">
+          <button onclick="window.print()" class="flex items-center space-x-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition">
+            <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+            <span>Print / Save PDF</span>
+          </button>
+          <button id="downloadAuditJsonBtn" class="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+            <span>Export JSON Audit</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Printable Report Card Paper -->
+      <div class="bg-slate-900/90 text-slate-100 p-6 sm:p-10 rounded-2xl border border-slate-800 shadow-2xl space-y-8" id="printableReportSection">
+        
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-6 border-b border-slate-800 gap-4">
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="text-2xl">🇳🇬</span>
+              <h3 class="text-2xl font-black tracking-tight text-white">NaijaWatt Energy Transition Audit</h3>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">Nigerian Generator Decommissioning & Renewable Sizing Proposal</p>
+          </div>
+          <div class="text-left sm:text-right text-xs text-slate-400 space-y-1">
+            <p>Date: <strong class="text-white" id="reportDate">October 2026</strong></p>
+            <p>Region: <strong class="text-emerald-400" id="reportState">Lagos State, Nigeria</strong></p>
+            <p>Audit Ref: <strong class="text-slate-300 font-mono" id="reportRefId">NW-LAG-2026-8812</strong></p>
+          </div>
+        </div>
+
+        <!-- 3-Block Summary in Report -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="bg-slate-950/70 p-4 rounded-xl border border-slate-800">
+            <span class="text-xs text-slate-400 font-bold block uppercase mb-1">1. Current Fuel Sinkhole</span>
+            <p class="text-lg font-black text-rose-400" id="reportMonthlySpend">₦947,520 / month</p>
+            <p class="text-xs text-slate-400 mt-1">Annual Spend: <span class="text-white font-semibold" id="reportAnnualSpend">₦11,528,160</span></p>
+            <p class="text-xs text-slate-400">Fuel Consumed: <span class="text-white font-semibold" id="reportAnnualLiters">12,264 Liters</span></p>
+          </div>
+
+          <div class="bg-slate-950/70 p-4 rounded-xl border border-slate-800">
+            <span class="text-xs text-slate-400 font-bold block uppercase mb-1">2. Proposed Clean Replacement</span>
+            <p class="text-lg font-black text-emerald-400" id="reportSystemCapacity">8.8 kWp Solar + 15.36 kWh</p>
+            <p class="text-xs text-slate-400 mt-1">Hardware: <span class="text-white font-semibold" id="reportPanelsSummary">16x 550W Panels + 8kW Inverter</span></p>
+            <p class="text-xs text-slate-400">Total Capex: <span class="text-white font-semibold" id="reportTotalCapex">₦9,840,000</span></p>
+          </div>
+
+          <div class="bg-slate-950/70 p-4 rounded-xl border border-slate-800">
+            <span class="text-xs text-slate-400 font-bold block uppercase mb-1">3. Financial Bottomline</span>
+            <p class="text-lg font-black text-cyan-400" id="reportPaybackSummary">10.4 Months Payback</p>
+            <p class="text-xs text-slate-400 mt-1">10-Year Net Savings: <span class="text-white font-semibold" id="reportTenYearSavings">₦180.2 Million</span></p>
+            <p class="text-xs text-slate-400">CO2 Emissions Avoided: <span class="text-emerald-400 font-semibold" id="reportCo2Avoided">28.3 Tons/yr</span></p>
+          </div>
+        </div>
+
+        <!-- Technical Bill of Materials Table in Report -->
+        <div>
+          <h4 class="text-sm font-bold uppercase tracking-wider text-slate-300 mb-3">Recommended Bill of Materials & Technical Engineering Specifications</h4>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border border-slate-800 rounded-xl overflow-hidden">
+              <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] font-bold">
+                <tr>
+                  <th class="p-3">Item / Component</th>
+                  <th class="p-3">Specification</th>
+                  <th class="p-3">Quantity</th>
+                  <th class="p-3">Unit Benchmark</th>
+                  <th class="p-3 text-right">Subtotal (₦)</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800" id="reportBomTableBody">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+
+  <!-- FOOTER -->
+  <footer class="border-t border-slate-800/80 bg-slate-950 py-12 mt-16 text-xs text-slate-400">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+      
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+          🇳🇬
+        </div>
+        <div>
+          <span class="text-white font-bold text-sm">NaijaWatt Energy Transition Platform</span>
+          <p class="text-[11px] text-slate-400">Accurate Regional Generator & Renewable Analytics for Nigeria</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-6 text-slate-400">
+        <a href="#tracker" class="hover:text-emerald-400 transition">Generator Tracker</a>
+        <a href="#facilities" class="hover:text-emerald-400 transition">Facilities</a>
+        <a href="#renewables" class="hover:text-emerald-400 transition">Renewables Sizing</a>
+        <a href="#pricing-engine" class="hover:text-emerald-400 transition">State Prices</a>
+        <button id="footerShareBtn" class="text-emerald-400 hover:underline">Share Website</button>
+      </div>
+
+    </div>
+  </footer>
+
+
+  <!-- PUBLIC SHARE & CLOUD DEPLOY MODAL -->
+  <div id="shareModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden">
+    <div class="glass-card bg-slate-900 border border-slate-700/80 rounded-2xl max-w-lg w-full p-6 space-y-6 shadow-2xl">
+      
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+            <i data-lucide="globe" class="w-4 h-4"></i>
+          </div>
+          <h3 class="font-bold text-white text-base">Make Public & Share Website</h3>
+        </div>
+        <button id="closeShareModalBtn" class="text-slate-400 hover:text-white p-1 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Public URL section -->
+      <div class="space-y-3">
+        <label class="text-xs font-semibold text-slate-300 block">Live Public Access URL</label>
+        <div class="flex items-center space-x-2">
+          <input type="text" id="publicUrlInput" readonly value="Connecting tunnel..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-emerald-400 font-mono select-all focus:outline-none">
+          <button id="copyPublicUrlBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 flex-shrink-0">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            <span id="copyBtnText">Copy</span>
+          </button>
+        </div>
+        <p class="text-[11px] text-slate-400 leading-relaxed" id="publicStatusDesc">
+          Anyone with this link can access the full website, use the calculators, and evaluate renewable energy replacements.
+        </p>
+      </div>
+
+      <!-- 1-Click Cloud Deployment info -->
+      <div class="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
+        <span class="text-xs font-bold text-white block flex items-center space-x-1.5">
+          <i data-lucide="cloud" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span>Permanent 24/7 Free Hosting Deployment</span>
+        </span>
+        <p class="text-[11px] text-slate-400">
+          This project is ready for 1-click cloud hosting on Vercel, Render, or Netlify with full zero-configuration support.
+        </p>
+        <div class="flex items-center space-x-2 pt-1">
+          <span class="text-[10px] bg-slate-900 px-2 py-1 rounded text-slate-300 font-mono border border-slate-800">Vercel Ready</span>
+          <span class="text-[10px] bg-slate-900 px-2 py-1 rounded text-slate-300 font-mono border border-slate-800">Render Ready</span>
+          <span class="text-[10px] bg-slate-900 px-2 py-1 rounded text-slate-300 font-mono border border-slate-800">Netlify Ready</span>
+        </div>
+      </div>
+
+      <div class="flex justify-end">
+        <button id="closeShareModalBtn2" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-xl text-xs font-bold transition">
+          Done
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- SCRIPTS -->
+  <script>
+    if (window.location.protocol === 'file:') {
+      fetch('http://localhost:3000/api/health', { cache: 'no-store' })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error('Local server is unavailable');
+          }
+          return response.json();
+        })
+        .then((health) => {
+          if (health.status !== 'ok') {
+            throw new Error('Local server is unavailable');
+          }
+          window.location.replace('http://localhost:3000');
+        })
+        .catch(() => {
+          document.body.innerHTML = `
+            <main style="max-width: 42rem; margin: 12vh auto; padding: 2rem; color: #e2e8f0; font: 16px/1.6 Arial, sans-serif; background: #0f172a; border: 1px solid #334155; border-radius: 1rem;">
+              <h1 style="color: #34d399;">NaijaWatt</h1>
+              <p>This page needs the local web server. Close this tab, then double-click <strong>Open NaijaWatt.cmd</strong> in the naijawatt folder. It will start the site and open it for you.</p>
+            </main>`;
+        });
+    }
+  </script>
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
